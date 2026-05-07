@@ -10,7 +10,7 @@
       "@type": "WebSite",
       "name": "Continental Status",
       "url": "https://status.continental-hub.com/",
-      "description": "Operational and incident updates for Continental services.",
+      "description": "Current availability for public Continental services.",
       "publisher": {
         "@type": "Organization",
         "name": "Continental"

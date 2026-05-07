@@ -6,7 +6,8 @@ const metricsGrid = document.querySelector("#metrics-grid");
 const servicesGrid = document.querySelector("#services-grid");
 const incidentsList = document.querySelector("#incidents-list");
 const maintenanceList = document.querySelector("#maintenance-list");
-const historyList = document.querySelector("#history-list");
+const incidentsPanel = incidentsList.closest(".panel");
+const maintenancePanel = maintenanceList.closest(".panel");
 
 const DEFAULT_REFRESH_INTERVAL_MS = 60_000;
 const KIND_LABELS = {
@@ -19,19 +20,19 @@ const KIND_LABELS = {
 
 const PLACEHOLDER_METRICS = [
   {
-    label: "Primary rollup",
-    value: "Live soon",
-    detail: "Overall status messaging appears here after integration.",
+    label: "Operational",
+    value: "Loading",
+    detail: "Checking service availability.",
   },
   {
-    label: "Telemetry slot",
-    value: "Awaiting feed",
-    detail: "Use for latency, uptime, or region-level highlights.",
+    label: "Issues",
+    value: "Loading",
+    detail: "Known service issues will appear here.",
   },
   {
-    label: "Dispatch lane",
-    value: "Standing by",
-    detail: "Best for current incident count or maintenance count.",
+    label: "Monitored",
+    value: "Loading",
+    detail: "Public services tracked on this page.",
   },
 ];
 
@@ -57,11 +58,11 @@ function normalizeSummary(value) {
 
   return {
     kind: normalizeKind(summary.kind, "pending"),
-    badge: normalizeText(summary.badge) || "Integration pending",
-    headline: normalizeText(summary.headline) || "Status canvas ready for live data",
+    badge: normalizeText(summary.badge) || "Loading live status",
+    headline: normalizeText(summary.headline) || "Checking Continental services",
     detail:
       normalizeText(summary.detail) ||
-      "This page is ready to display live service health, incidents, maintenance windows, and release notes.",
+      "This page is checking the current availability of public Continental services.",
   };
 }
 
@@ -149,6 +150,22 @@ function normalizeHistory(value) {
     label,
     date: normalizeTimestamp(entry.date),
     detail: normalizeText(entry.detail),
+    kind: normalizeKind(entry.kind, "pending"),
+    days: normalizeArray(entry.days).map(normalizeHistoryDay).filter(Boolean),
+  };
+}
+
+function normalizeHistoryDay(value) {
+  const day = value && typeof value === "object" ? value : {};
+  const label = normalizeText(day.label);
+
+  if (!label) {
+    return null;
+  }
+
+  return {
+    label,
+    kind: normalizeKind(day.kind, "pending"),
   };
 }
 
@@ -209,7 +226,7 @@ function normalizeKind(value, fallback) {
 
 function formatDateTime(value) {
   if (!value) {
-    return "Waiting for first snapshot";
+    return "Waiting for first check";
   }
 
   return new Intl.DateTimeFormat(undefined, {
@@ -247,12 +264,13 @@ function setBadge(kind, label) {
 }
 
 function renderSummary(summary, generatedAt) {
+  document.body.dataset.status = summary.kind;
   summaryTitle.textContent = summary.headline;
   summaryDetail.textContent = summary.detail;
   setBadge(summary.kind, summary.badge || KIND_LABELS[summary.kind]);
   summaryUpdated.textContent = generatedAt
-    ? `Latest snapshot ${formatDateTime(generatedAt)}`
-    : "Waiting for first snapshot";
+    ? `Last checked ${formatDateTime(generatedAt)}`
+    : "Waiting for first check";
 }
 
 function renderMetrics(metrics) {
@@ -279,11 +297,15 @@ function renderMetrics(metrics) {
   );
 }
 
-function renderServices(services) {
+function renderServices(services, historyEntries = []) {
   if (services.length === 0) {
     servicesGrid.replaceChildren(...buildServicePlaceholders());
     return;
   }
+
+  const historyByService = new Map(
+    historyEntries.map((entry) => [entry.label.toLowerCase(), entry])
+  );
 
   servicesGrid.replaceChildren(
     ...services.map((service, index) => {
@@ -291,6 +313,7 @@ function renderServices(services) {
       const header = document.createElement("div");
       const meta = document.createElement("div");
       const badge = document.createElement("span");
+      const historyEntry = historyByService.get(service.name.toLowerCase());
 
       article.className = "service-card";
       article.dataset.kind = service.kind;
@@ -313,16 +336,12 @@ function renderServices(services) {
         createTextElement(
           "p",
           "service-description",
-          service.description || "No service note has been published yet."
+          service.description || "Current service status is being checked."
         )
       );
 
-      if (service.note) {
-        article.append(createTextElement("p", "service-note", service.note));
-      }
-
       meta.append(
-        createTextElement("span", "", service.updatedAt ? `Updated ${formatDateTime(service.updatedAt)}` : "Awaiting first update")
+        createTextElement("span", "", service.kind === "operational" ? "No known issues" : "We are checking this")
       );
 
       if (service.link) {
@@ -334,6 +353,11 @@ function renderServices(services) {
       }
 
       article.append(meta);
+
+      if (historyEntry && historyEntry.days.length > 0) {
+        article.append(buildHistoryBars(historyEntry.days));
+      }
+
       return article;
     })
   );
@@ -341,15 +365,11 @@ function renderServices(services) {
 
 function renderIncidents(incidents) {
   if (incidents.length === 0) {
-    incidentsList.replaceChildren(
-      buildEmptyState(
-        "No incident posts yet",
-        "Active and historical incident notes will appear here once the feed starts publishing updates."
-      )
-    );
+    incidentsPanel.hidden = true;
     return;
   }
 
+  incidentsPanel.hidden = false;
   incidentsList.replaceChildren(
     ...incidents.map((incident, index) =>
       buildStackItem({
@@ -370,15 +390,11 @@ function renderIncidents(incidents) {
 
 function renderMaintenance(maintenanceItems) {
   if (maintenanceItems.length === 0) {
-    maintenanceList.replaceChildren(
-      buildEmptyState(
-        "No maintenance windows yet",
-        "Planned work, upgrade windows, and rollout notices will be staged in this column."
-      )
-    );
+    maintenancePanel.hidden = true;
     return;
   }
 
+  maintenancePanel.hidden = false;
   maintenanceList.replaceChildren(
     ...maintenanceItems.map((item, index) =>
       buildStackItem({
@@ -393,68 +409,19 @@ function renderMaintenance(maintenanceItems) {
   );
 }
 
-function renderHistory(historyEntries) {
-  if (historyEntries.length === 0) {
-    historyList.replaceChildren(
-      ...[
-        {
-          label: "Resolved incidents",
-          detail: "Fill this lane with postmortem links or closure notes once reporting starts.",
-        },
-        {
-          label: "Launch notes",
-          detail: "Use for deploys, migrations, and platform milestones.",
-        },
-        {
-          label: "Regional updates",
-          detail: "Useful for region-specific maintenance or recovery history.",
-        },
-      ].map((entry, index) => {
-        const article = document.createElement("article");
-
-        article.className = "history-card";
-        article.dataset.placeholder = "true";
-        article.style.animationDelay = `${100 + index * 70}ms`;
-        article.append(
-          createTextElement("p", "history-date", "Timeline slot"),
-          createTextElement("h3", "history-label", entry.label),
-          createTextElement("p", "history-detail", entry.detail)
-        );
-
-        return article;
-      })
-    );
-    return;
-  }
-
-  historyList.replaceChildren(
-    ...historyEntries.map((entry, index) => {
-      const article = document.createElement("article");
-
-      article.className = "history-card";
-      article.style.animationDelay = `${100 + index * 70}ms`;
-      article.append(
-        createTextElement("p", "history-date", entry.date ? formatDateTime(entry.date) : "Date pending"),
-        createTextElement("h3", "history-label", entry.label),
-        createTextElement("p", "history-detail", entry.detail || "Historical note published.")
-      );
-
-      return article;
-    })
-  );
-}
-
 function buildStackItem({ title, badge, detail, meta, link, delay }) {
   const article = document.createElement("article");
   const topRow = document.createElement("div");
+  const statusKind = normalizeIncidentStatus(badge);
 
   article.className = "stack-item";
+  article.dataset.kind = statusKind;
   article.style.animationDelay = `${100 + delay * 70}ms`;
 
   topRow.className = "stack-item-top";
   topRow.append(
     createTextElement("h3", "stack-title", title),
-    createTextElement("span", "stack-badge", badge)
+    createTextElement("span", `stack-badge stack-badge-${statusKind}`, badge)
   );
 
   article.append(
@@ -472,6 +439,48 @@ function buildStackItem({ title, badge, detail, meta, link, delay }) {
   }
 
   return article;
+}
+
+function buildHistoryBars(days) {
+  const wrapper = document.createElement("div");
+  const label = createTextElement("p", "service-history-label", "Last 7 days");
+  const bars = document.createElement("div");
+
+  wrapper.className = "service-history";
+  bars.className = "history-bars";
+  bars.append(
+    ...days.map((day) => {
+      const bar = document.createElement("span");
+
+      bar.className = "history-bar";
+      bar.dataset.kind = day.kind;
+      bar.title = `${day.label}: ${KIND_LABELS[day.kind]}`;
+      bar.setAttribute("aria-label", `${day.label}: ${KIND_LABELS[day.kind]}`);
+
+      return bar;
+    })
+  );
+  wrapper.append(label, bars);
+
+  return wrapper;
+}
+
+function normalizeIncidentStatus(value) {
+  const status = normalizeText(value).toLowerCase();
+
+  if (status === "resolved") {
+    return "operational";
+  }
+
+  if (status === "monitoring" || status === "identified") {
+    return "degraded";
+  }
+
+  if (status === "investigating") {
+    return "outage";
+  }
+
+  return "pending";
 }
 
 function buildEmptyState(title, detail) {
@@ -504,7 +513,7 @@ function buildServicePlaceholders() {
       <div class="placeholder-line"></div>
       <div class="placeholder-line placeholder-line-soft"></div>
       <div class="service-meta">
-        <span>Service tile reserved for future integration</span>
+        <span>Waiting for service status</span>
       </div>
     `;
 
@@ -515,10 +524,9 @@ function buildServicePlaceholders() {
 function renderPayload(payload) {
   renderSummary(payload.summary, payload.generatedAt);
   renderMetrics(payload.metrics);
-  renderServices(payload.services);
+  renderServices(payload.services, payload.history);
   renderIncidents(payload.incidents);
   renderMaintenance(payload.maintenance);
-  renderHistory(payload.history);
 }
 
 function renderFetchError() {
@@ -526,8 +534,8 @@ function renderFetchError() {
     {
       kind: "degraded",
       badge: "Feed unavailable",
-      headline: "Status API could not be loaded",
-      detail: "The page shell is ready, but the status endpoint did not respond. Check the server or data source.",
+      headline: "Unable to load service status",
+      detail: "The status page could not refresh. Please try again shortly.",
     },
     null
   );
@@ -566,5 +574,4 @@ renderMetrics([]);
 renderServices([]);
 renderIncidents([]);
 renderMaintenance([]);
-renderHistory([]);
 refreshStatus();

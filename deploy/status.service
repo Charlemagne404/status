@@ -1,0 +1,20 @@
+[Unit]
+Description=Continental status website
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=charlie
+Group=charlie
+WorkingDirectory=/home/charlie/status
+EnvironmentFile=/home/charlie/status/.env
+ExecStart=/usr/bin/node /home/charlie/status/server.js
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

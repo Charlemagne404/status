@@ -1,7 +1,7 @@
 {
   "name": "Continental Status",
   "short_name": "Status",
-  "description": "Operational and incident updates for Continental services.",
+  "description": "Current availability for public Continental services.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0b0d10",

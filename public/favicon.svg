@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title>Continental favicon</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#181b20"/>
+      <stop offset="100%" stop-color="#0b0d10"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f0d99a"/>
+      <stop offset="100%" stop-color="#d6bd7b"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <circle cx="64" cy="64" r="34" fill="none" stroke="url(#ring)" stroke-width="10"/>
+  <path d="M64 18c10 10 16 28 16 46s-6 36-16 46c-10-10-16-28-16-46s6-36 16-46Z" fill="none" stroke="#7fb7a2" stroke-width="6" stroke-linecap="round"/>
+  <path d="M32 64h64" fill="none" stroke="#f6f3ec" stroke-width="6" stroke-linecap="round" opacity="0.72"/>
+</svg>

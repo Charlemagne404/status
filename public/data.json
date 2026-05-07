@@ -1,0 +1,20 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "name": "Continental",
+      "url": "https://continental-hub.com"
+    },
+    {
+      "@type": "WebSite",
+      "name": "Continental Status",
+      "url": "https://status.continental-hub.com/",
+      "description": "Operational and incident updates for Continental services.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "Continental"
+      }
+    }
+  ]
+}

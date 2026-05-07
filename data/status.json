@@ -1,0 +1,15 @@
+{
+  "generatedAt": null,
+  "refreshIntervalMs": 60000,
+  "summary": {
+    "kind": "pending",
+    "badge": "Integration pending",
+    "headline": "Status canvas ready for live data",
+    "detail": "No Continental service telemetry is connected yet. This interface is ready to receive and present future service health, incidents, maintenance windows, and release history."
+  },
+  "services": [],
+  "incidents": [],
+  "maintenance": [],
+  "metrics": [],
+  "history": []
+}

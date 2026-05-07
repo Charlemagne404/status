@@ -1,0 +1,24 @@
+{
+  "name": "continental-status",
+  "version": "1.0.0",
+  "description": "Continental status page prepared for future live service and incident integration.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "continental",
+    "status",
+    "status-page"
+  ],
+  "author": "Continental",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}
